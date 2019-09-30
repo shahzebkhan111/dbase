@@ -375,37 +375,41 @@ impl Database {
         let size:usize = (header_size - 32 + 1).into();
         let mut field_buffer = vec![];
         field_buffer.resize(size, 0);
-        file.read_exact(&mut field_buffer)?;
 
-        let fields:Vec<FieldDescriptor> = Self::parse_fields(field_buffer)?;
+        let mut fields:Vec<FieldDescriptor> = vec![];
+        let mut memo_file:Option<Box<MemoContainer>> = None;
 
-        // Do we have a memo file?
-        let stem = file_path.file_stem().and_then(|r| r.to_str()).map(|r| r.to_string()).unwrap_or("".to_string());
-        let mut dir_path:Vec<_> = file_path.components().map(|r| r.as_os_str()).collect();
-        dir_path.pop();
-        let mut dir = PathBuf::new();
-        dir_path.into_iter().for_each(|component| dir.push(component));
+        if num_records > 0 {
+            file.read_exact(&mut field_buffer)?;
+            fields = Self::parse_fields(field_buffer)?;
 
-        let memo_file:Option<Box<MemoContainer>> = {
-            let mut dbt_pathbuf = dir.clone();
-            dbt_pathbuf.push(format!("{}.dbt", stem));
-            match dbt_pathbuf.is_file() {
-                true => {
-                    Some(Box::new(DBaseMemoContainer::open(dbt_pathbuf)?))
-                },
-                false => {
-                    let mut fpt_pathbuf = dir.clone();
-                    fpt_pathbuf.push(format!("{}.fpt", stem));
-                    match fpt_pathbuf.is_file() {
-                        true => {
-                            Some(Box::new(FoxProMemoContainer::open(fpt_pathbuf)?))
-                        },
-                        false => None
+            // Do we have a memo file?
+            let stem = file_path.file_stem().and_then(|r| r.to_str()).map(|r| r.to_string()).unwrap_or("".to_string());
+            let mut dir_path:Vec<_> = file_path.components().map(|r| r.as_os_str()).collect();
+            dir_path.pop();
+            let mut dir = PathBuf::new();
+            dir_path.into_iter().for_each(|component| dir.push(component));
+
+            memo_file = {
+                let mut dbt_pathbuf = dir.clone();
+                dbt_pathbuf.push(format!("{}.dbt", stem));
+                match dbt_pathbuf.is_file() {
+                    true => {
+                        Some(Box::new(DBaseMemoContainer::open(dbt_pathbuf)?))
+                    },
+                    false => {
+                        let mut fpt_pathbuf = dir.clone();
+                        fpt_pathbuf.push(format!("{}.fpt", stem));
+                        match fpt_pathbuf.is_file() {
+                            true => {
+                                Some(Box::new(FoxProMemoContainer::open(fpt_pathbuf)?))
+                            },
+                            false => None
+                        }
                     }
                 }
-            }
-        };
-
+            };
+        }
         Ok(Database {
             path: path.into(),
             memo: memo_file,
