@@ -87,8 +87,8 @@ pub struct FieldTypeL;
 impl FieldType for FieldTypeL {
     fn parse(&self, _database: &mut Database, data: Vec<u8>) -> Result<FieldValue, io::Error> {
         match data.first() {
-            Some(r) if *r == 89 || *r == 121 || *r == 49 => Ok(FieldValue::Boolean(Some(true))),
-            Some(r) if *r == 78 || *r == 110 || *r == 48 => Ok(FieldValue::Boolean(Some(false))),
+            Some(r) if *r == 89 || *r == 121 || *r == 49 || *r == 84 => Ok(FieldValue::Boolean(Some(true))),
+            Some(r) if *r == 78 || *r == 110 || *r == 48 || *r == 70 => Ok(FieldValue::Boolean(Some(false))),
             Some(_r) => Ok(FieldValue::Boolean(None)),
             _ => Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid data for a boolean"))
         }
